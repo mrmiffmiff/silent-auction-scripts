@@ -1,7 +1,9 @@
 function generateCatalog() {
-    const sheet = SpreadsheetApp.openById('REDACTED').getSheetByName('Events');
-    const data = sheet.getRange('A2:P3').getValues();
-    const doc = DocumentApp.create('Catalog Test');
+    const sheet = SpreadsheetApp.openById('INSERTID').getSheetByName('Events');
+    const data = sheet.getRange('A2:Q').getValues().filter(row => row[0]);
+    data.sort((a, b) => a[2] - b[2]);
+
+    const doc = DocumentApp.create('Catalog Iteration Final Real');
     const body = doc.getBody();
 
     data.forEach(row => {
@@ -17,9 +19,11 @@ function generateCatalog() {
         const description = body.appendParagraph(itemDesc);
         description.editAsText().setBold(false);
         body.appendParagraph("");
-        const dets = body.appendParagraph(`Item/Event Details: ${itemDets}`);
-        dets.editAsText().setBold(0, 18, true);
-        const bid = body.appendParagraph(`Starting Bid: ${startBid}`);
+        if (!(itemDets === "")) {
+            const dets = body.appendParagraph(`Details: ${itemDets}`);
+            dets.editAsText().setBold(0, 7, true);
+        }
+        const bid = body.appendParagraph(`Starting Bid: $${startBid}`);
         bid.editAsText().setBold(0, 12, true);
         const name = body.appendParagraph(`Thanks To: ${dispName}`);
         name.editAsText().setBold(0, 9, true);
@@ -28,5 +32,5 @@ function generateCatalog() {
     });
 
     doc.saveAndClose();
-    return doc;
+    Logger.log(doc.getUrl());
 }
