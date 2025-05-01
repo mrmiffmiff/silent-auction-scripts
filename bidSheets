@@ -1,0 +1,234 @@
+function generateBlankBidSheet() {
+    const doc = DocumentApp.create("Blank Bid Sheet");
+    const body = doc.getBody();
+
+    body.appendParagraph(`Item: `).setHeading(DocumentApp.ParagraphHeading.HEADING1)
+        .setAlignment(DocumentApp.HorizontalAlignment.CENTER)
+        .setBold(true);
+
+    typeB(body, '', '', 20, '', '');
+    doc.saveAndClose();
+    Logger.log(`Document created: ${doc.getUrl()}`);
+}
+
+function blankASheet() {
+    const doc = DocumentApp.create("Blank Bid Sheet A");
+    const body = doc.getBody();
+
+    body.appendParagraph(`Item: `).setHeading(DocumentApp.ParagraphHeading.HEADING1)
+        .setAlignment(DocumentApp.HorizontalAlignment.CENTER)
+        .setBold(true);
+
+    typeA(body, '', '', 20);
+    doc.saveAndClose();
+    Logger.log(`Document created: ${doc.getUrl()}`);
+}
+
+function generateBidSheets() {
+    // Open the Google Sheet
+    const sheet = SpreadsheetApp.openById('INSERTID').getSheetByName('Events');
+    const data = sheet.getDataRange().getValues().filter(row => row[0]);
+
+    // Create a new Google Document
+    let doc = DocumentApp.create("Silent Auction Bid Sheets Attempt 5 03/27/2025");
+    const id = doc.getId();
+    doc.saveAndClose();
+
+    // Loop through each row of data (skip the header row)
+    for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        const eventName = row[0];
+        const eventNumber = row[2];
+        const eventDescription = row[4];
+        const eventDetails = row[5];
+        const donorDisplayName = row[10];
+        const quantity = row[11];
+        const startingBid = row[14];
+        const bidIncrement = row[15];
+        const sheetType = row[16];
+        const value = row[13];
+        const descriptor = row[12];
+
+        doc = DocumentApp.openById(id);
+        const body = doc.getBody();
+
+        // Add the event header
+        body.appendParagraph(`${eventNumber}. ${eventName}`)
+            .setHeading(DocumentApp.ParagraphHeading.HEADING1)
+            .setAlignment(DocumentApp.HorizontalAlignment.CENTER)
+            .setBold(true);
+
+        // Add the event description
+        body.appendParagraph(eventDescription)
+            .setAlignment(DocumentApp.HorizontalAlignment.CENTER)
+            .setBold(false);
+
+        // Add the event details
+        if (eventDetails) {
+            body.appendParagraph(`Details: ${eventDetails}`)
+                .setAlignment(DocumentApp.HorizontalAlignment.CENTER)
+                .setBold(true);
+        }
+
+        if (value != 'priceless') {
+            body.appendParagraph(`Value: $${value}`).setAlignment(DocumentApp.HorizontalAlignment.CENTER).setBold(true);
+        }
+
+        // Add the donor display name
+        body.appendParagraph(`Thanks to: ${donorDisplayName}`)
+            .setAlignment(DocumentApp.HorizontalAlignment.CENTER)
+            .setBold(false);
+
+        switch (sheetType) {
+            case 'A':
+                typeA(body, startingBid, bidIncrement);
+                break;
+            case 'B':
+            case 'E':
+                typeB(body, startingBid, bidIncrement, quantity, 0, descriptor);
+                break;
+            case 'C':
+                typeC(body, startingBid, bidIncrement, quantity, descriptor);
+                break;
+            case 'F':
+                typeF(body, startingBid, quantity);
+                break;
+        }
+
+        // Add a page break after each item (except the last one)
+        if (i < data.length - 1) {
+            body.appendPageBreak();
+        }
+
+        doc.saveAndClose();
+    }
+
+    // Log the URL of the created document
+    Logger.log(`Document created: ${doc.getUrl()}`);
+}
+
+function typeA(body, startingBid, bidIncrement, quantity = 15) {
+    const table = body.appendTable();
+    const headerRow = table.appendTableRow();
+    headerRow.setMinimumHeight(15); // this doesn't work, may need to set some padding
+
+    const top1 = headerRow.appendTableCell("");
+    top1.setPaddingLeft(0);
+    top1.setPaddingTop(0);
+    top1.setPaddingBottom(0);
+    top1.setPaddingRight(0);
+    const top2 = headerRow.appendTableCell("Bid");
+    top2.setPaddingLeft(0);
+    top2.setPaddingTop(0);
+    top2.setPaddingBottom(0);
+    top2.setPaddingRight(0);
+    const top3 = headerRow.appendTableCell("Name");
+    top3.setPaddingLeft(0);
+    top3.setPaddingTop(0);
+    top3.setPaddingBottom(0);
+    top3.setPaddingRight(0);
+
+    table.setColumnWidth(0, 30);
+    table.setColumnWidth(1, 40);
+
+    for (let j = 1; j <= quantity; j++) {
+        const row = table.appendTableRow();
+        const num = row.appendTableCell(j.toString()).setBold(true);
+        const price = row.appendTableCell(`$${startingBid + (bidIncrement * (j - 1))}`);
+        const name = row.appendTableCell("");
+        row.setMinimumHeight(30);
+    }
+
+}
+
+function typeB(body, startingBid, bidIncrement, quantity, incrementMultiplier, descriptor) {
+    // Create the table
+    const table = body.appendTable();
+    const headerRow = table.appendTableRow();
+    const perText = (descriptor) ? ` per ${descriptor}` : '';
+
+    // Add column headers
+    const first = headerRow.appendTableCell("").setBold(true); // Empty cell for row numbers
+    first.setPaddingBottom(0);
+    first.setPaddingLeft(0);
+    first.setPaddingRight(0);
+    first.setPaddingTop(0);
+    for (let i = 0; i < 4; i++) {
+        headerRow.appendTableCell(`$${startingBid + (bidIncrement * incrementMultiplier)}${perText}`).setBold(true);
+        incrementMultiplier++;
+    }
+
+    table.setColumnWidth(0, 30);
+
+    // Add rows for bids
+    for (let j = 1; j <= quantity; j++) {
+        const row = table.appendTableRow();
+        row.appendTableCell(j.toString()).setBold(true); // Row number
+        row.appendTableCell(""); // Blank cell for bid 1
+        row.appendTableCell(""); // Blank cell for bid 2
+        row.appendTableCell(""); // Blank cell for bid 3
+        row.appendTableCell(""); // Blank cell for bid 4
+
+        // Set row height (slightly taller)
+        row.setMinimumHeight(30); // Adjust this value as needed
+    }
+}
+
+function typeC(body, startingBid, bidIncrement, quantity, descriptor) {
+    const numTables = (quantity < 4) ? 3 : 2;
+    for (let i = 0; i < numTables; i++) {
+        typeB(body, startingBid, bidIncrement, quantity, 4 * i, descriptor);
+        if (!(i + 1 == numTables)) {
+            body.appendParagraph("");
+            body.appendParagraph("");
+        }
+    }
+}
+
+function typeD(body, startingBid, bidIncrement, quantity) {
+    const table = body.appendTable();
+    const headerRow = table.appendTableRow();
+    const first = headerRow.appendTableCell("").setBold(true);
+    first.setPaddingBottom(0);
+    first.setPaddingLeft(0);
+    first.setPaddingRight(0);
+    first.setPaddingTop(0);
+    headerRow.appendTableCell(`$${startingBid}`).setBold(true);
+    headerRow.appendTableCell(`$${startingBid} continued`).setBold(true);
+    headerRow.appendTableCell(`$${startingBid + bidIncrement}`).setBold(true);
+    headerRow.appendTableCell(`$${startingBid + bidIncrement} continued`).setBold(true);
+    table.setColumnWidth(0, 30);
+
+    for (let j = 1; j <= quantity; j++) {
+        const row = table.appendTableRow();
+        row.appendTableCell(j.toString()).setBold(true);
+        row.appendTableCell("");
+        row.appendTableCell("");
+        row.appendTableCell("");
+        row.appendTableCell("");
+        row.setMinimumHeight(30);
+    }
+}
+
+function typeF(body, startingBid, quantity) {
+    // const p = body.appendParagraph(`Price: $${startingBid}`).setAlignment(DocumentApp.HorizontalAlignment.CENTER)
+    // p.editAsText().setBold(0, 6, true);
+    // const table = body.appendTable();
+    // const headerRow = table.appendTableRow();
+    // const first = headerRow.appendTableCell("").setBold(true)
+    // first.setPaddingBottom(0);
+    // first.setPaddingLeft(0);
+    // first.setPaddingRight(0);
+    // first.setPaddingTop(0);
+    // headerRow.appendTableCell("Name").setBold(true);
+    // table.setColumnWidth(0, 30);
+
+    // for (let j = 1; j <= quantity; j++) {
+    //   const row = table.appendTableRow();
+    //   row.appendTableCell(j.toString()).setBold(true);
+    //   row.appendTableCell("");
+    //   row.setMinimumHeight(30);
+    // }
+    typeA(body, startingBid, 0, quantity);
+
+}
